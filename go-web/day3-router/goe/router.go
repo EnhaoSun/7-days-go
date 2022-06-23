@@ -1,8 +1,10 @@
 package goe
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"strings"
 )
 
@@ -20,6 +22,7 @@ func newRouter() *router {
 
 // Only one * is allowed
 func parsePattern(pattern string) []string {
+	defer trace()()
 	vs := strings.Split(pattern, "/")
 	parts := make([]string, 0)
 	for _, item := range vs {
@@ -34,6 +37,7 @@ func parsePattern(pattern string) []string {
 }
 
 func (r *router) addRoute(method string, pattern string, handler HandleFunc) {
+	defer trace()()
 	log.Printf("Route %4s - %s", method, pattern)
 	// 解析url
 	parts := parsePattern(pattern)
@@ -49,8 +53,10 @@ func (r *router) addRoute(method string, pattern string, handler HandleFunc) {
 }
 
 func (r *router) getRoute(method string, path string) (*node, map[string]string) {
-	// 解析后的路径
+	defer trace()()
+	// 解析后的路径数组
 	searchParts := parsePattern(path)
+	// params用来保存路径当中可能存在的变量
 	params := make(map[string]string)
 	root, ok := r.roots[method]
 
@@ -58,6 +64,7 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 		return nil, nil
 	}
 
+	// 搜索是否有匹配上的节点
 	n := root.search(searchParts, 0)
 
 	// 找到了匹配上的叶子节点
@@ -77,6 +84,7 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 }
 
 func (r *router) getRoutes(method string) []*node {
+	defer trace()()
 	root, ok := r.roots[method]
 	if !ok {
 		return nil
@@ -87,6 +95,8 @@ func (r *router) getRoutes(method string) []*node {
 }
 
 func (r *router) handle(c *Context) {
+	fmt.Println("--------------")
+	defer trace()()
 	n, params := r.getRoute(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
@@ -95,4 +105,17 @@ func (r *router) handle(c *Context) {
 	} else {
 		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
 	}
+}
+
+func trace() func() {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		panic("not found caller")
+	}
+
+	fn := runtime.FuncForPC(pc)
+	name := fn.Name()
+
+	fmt.Printf("enter: %s\n", name)
+	return func() { fmt.Printf("exit: %s\n", name) }
 }

@@ -11,7 +11,8 @@ type node struct {
 }
 
 func (n *node) insert(pattern string, parts []string, height int) {
-	// 插入结束
+	defer trace()()
+	// parts已经遍历完了，插入结束
 	if len(parts) == height {
 		n.pattern = pattern
 		return
@@ -28,6 +29,7 @@ func (n *node) insert(pattern string, parts []string, height int) {
 
 // 寻找第一个成功匹配的节点
 func (n *node) matchChild(part string) *node {
+	defer trace()()
 	for _, child := range n.children {
 		// 如果匹配上了某个节点，或者当前节点为模糊匹配
 		if child.part == part || child.isWild {
@@ -39,6 +41,7 @@ func (n *node) matchChild(part string) *node {
 
 // 找出所有匹配成功的节点, 用于查找
 func (n *node) matchChildren(part string) []*node {
+	defer trace()()
 	nodes := make([]*node, 0)
 	for _, child := range n.children {
 		if child.part == part || child.isWild {
@@ -49,6 +52,7 @@ func (n *node) matchChildren(part string) []*node {
 }
 
 func (n *node) search(parts []string, height int) *node {
+	defer trace()()
 	if len(parts) == height || strings.HasPrefix(n.part, "*") {
 		// 使用n.pattern == ""来判断路由规则是否匹配成功
 		// 拥有pattern值的，都是叶子节点
@@ -72,6 +76,7 @@ func (n *node) search(parts []string, height int) *node {
 }
 
 func (n *node) travel(list *([]*node)) {
+	defer trace()()
 	if n.pattern != "" {
 		*list = append(*list, n)
 	}
